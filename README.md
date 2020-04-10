@@ -6,6 +6,8 @@ Visualize changes to [swaylock's](https://github.com/swaywm/swaylock) configurat
 
 **WORK IN PROGRESS!**
 
+[Live Demo](https://squiddy.github.io/swaylock-configurator/)
+
 ## Screenshot
 
 ![Preview](extras/screenshot.png)
