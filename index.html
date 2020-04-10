@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8" />
+  <title>Swaylock configurator</title>
+  <link href="color-picker.css" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    label strong {
+      display: block;
+      font-size: 1rem;
+    }
+
+    label small {
+      display: block;
+    }
+
+    label input {
+      width: 100%;
+    }
+
+    main {
+      display: grid;
+      grid-gap: 10px;
+      grid-template-columns: 4fr 50% 2fr;
+      max-height: 100vh;
+    }
+
+    .form {
+      grid-column: 1;
+      grid-row: 1;
+      overflow-y: scroll;
+      max-height: 100vh;
+      padding: 1rem;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .config {
+      grid-column: 3;
+      grid-row: 1;
+      max-height: 100vh;
+      padding: 1rem;
+    }
+
+    .preview {
+      grid-column: 2;
+      grid-row: 1;
+      max-height: 100vh;
+    }
+
+    button {
+      display: block;
+      margin-bottom: 1rem;
+      width: 100%;
+    }
+
+    textarea {
+      height: 50vh;
+      width: 100%;
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="form">
+      <h1>Swaylock configurator</h1>
+      <form>
+        <label>
+          <strong>State</strong>
+          <select name="state">
+            <option value="idle">Idle</option>
+            <option value="typing">Typing</option>
+            <option value="backspace">Backspace</option>
+            <option value="cleared">Cleared</option>
+            <option value="verifying">Verifying</option>
+            <option value="wrong">Wrong</option>
+          </select>
+        </label>
+      </form>
+    </section>
+    <section class="config">
+      <button>Load</button>
+      <textarea></textarea>
+    </section>
+    <section class="preview">
+      <canvas width="400" height="400"></canvas>
+    </section>
+  </main>
+
+  <script src="color-picker.min.js"></script>
+  <script>
+    // List of configuration options that are available to change.
+    const CONFIG = [
+      {
+        name: "--bs-hl-color",
+        help: "Sets the color of backspace highlight segments.",
+        type: "color",
+        default: "#DB3300FF",
+      },
+      /*
+        *--caps-lock-bs-hl-color* <rrggbb[aa]>
+        Sets the color of backspace highlight segments when Caps Lock is active.
+
+        *--caps-lock-key-hl-color* <rrggbb[aa]>
+        Sets the color of the key press highlight segments when Caps Lock is active.
+
+        *--font* <font>
+        Sets the font of the text.
+
+        *--font-size* <size>
+        Sets a fixed font size for the indicator text.
+      */
+      {
+        name: "--indicator-radius",
+        help: "Sets the indicator radius.",
+        type: "number",
+        default: "50",
+      },
+      {
+        name: "--indicator-thickness",
+        help: "Sets the indicator thickness.",
+        type: "number",
+        default: "10",
+      },
+      {
+        name: "--inside-color",
+        help: "Sets the color of the inside of the indicator.",
+        type: "color",
+        default: "#000000C0",
+      },
+      {
+        name: "--inside-clear-color",
+        help: "Sets the color of the inside of the indicator when cleared.",
+        type: "color",
+        default: "#E5A445C0",
+      },
+      /*
+        *--inside-caps-lock-color* <rrggbb[aa]>
+       	Sets the color of the inside of the indicator when Caps Lock is active.
+      */
+      {
+        name: "--inside-ver-color",
+        help: "Sets the color of the inside of the indicator when verifying.",
+        type: "color",
+        default: "#0072FFC0",
+      },
+      {
+        name: "--inside-wrong-color",
+        help: "Sets the color of the inside of the indicator when invalid.",
+        type: "color",
+        default: "#FA0000C0",
+      },
+      {
+        name: "--key-hl-color",
+        help: "Sets the color of the key press highlight segments.",
+        type: "color",
+        default: "#33DB00FF",
+      },
+      {
+        name: "--line-color",
+        help: "Sets the color of the line between the inside and ring.",
+        type: "color",
+        default: "#000000FF",
+      },
+      {
+        name: "--line-clear-color",
+        help:
+          "Sets the color of the line between the inside and ring when cleared.",
+        type: "color",
+        default: "#000000FF",
+      },
+      {
+        name: "--line-caps-lock-color",
+        help:
+          "Sets the color of the line between the inside and ring when Caps Lock is active.",
+        type: "color",
+        default: "#000000FF",
+      },
+      {
+        name: "--line-ver-color",
+        help:
+          "Sets the color of the line between the inside and ring when verifying.",
+        type: "color",
+        default: "#000000FF",
+      },
+      {
+        name: "--line-wrong-color",
+        help:
+          "Sets the color of the line between the inside and ring when invalid.",
+        type: "color",
+        default: "#000000FF",
+      },
+      /*
+        *-n, --line-uses-inside*
+        Use the inside color for the line between the inside and ring.
+
+        *-r, --line-uses-ring*
+        Use the ring color for the line between the inside and ring.
+      */
+      {
+        name: "--ring-color",
+        help:
+          "Sets the color of the ring of the indicator when typing or idle.",
+        type: "color",
+        default: "#337D00FF",
+      },
+      {
+        name: "--ring-clear-color",
+        help: "Sets the color of the ring of the indicator when cleared.",
+        type: "color",
+        default: "#E5A445FF",
+      },
+      /*
+        *--ring-caps-lock-color* <rrggbb[aa]>
+        Sets the color of the ring of the indicator when Caps Lock is active.
+      */
+      {
+        name: "--ring-ver-color",
+        help: "Sets the color of the ring of the indicator when verifying.",
+        type: "color",
+        default: "#3300FFFF",
+      },
+      {
+        name: "--ring-wrong-color",
+        help: "Sets the color of the ring of the indicator when invalid.",
+        type: "color",
+        default: "#7D3300FF",
+      },
+      {
+        name: "--separator-color",
+        help: "Sets the color of the lines that separate highlight segments.",
+        type: "color",
+        default: "#000000FF",
+      },
+    ];
+
+    function render(config) {
+      const canvas = document.querySelector("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const cx = 200;
+      const cy = 200;
+
+      const radius = parseInt(config.indicatorRadius) * 2;
+      const thickness = parseInt(config.indicatorThickness) * 2;
+      const innerRadius = radius - thickness;
+
+      ctx.clearRect(0, 0, 400, 400);
+
+      // Inside
+      ctx.beginPath();
+      ctx.fillStyle =
+        {
+          cleared: config.insideClearColor,
+          verifying: config.insideVerColor,
+          wrong: config.insideWrongColor,
+        }[config.state] || config.insideColor;
+      ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2, 0);
+      ctx.fill();
+
+      // Ring
+      ctx.beginPath();
+      ctx.lineWidth = thickness;
+      ctx.strokeStyle =
+        {
+          cleared: config.ringClearColor,
+          verifying: config.ringVerColor,
+          wrong: config.ringWrongColor,
+        }[config.state] || config.ringColor;
+      ctx.arc(cx, cy, radius - thickness / 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      if (["typing", "backspace"].includes(config.state)) {
+        // Key highlight border
+        ctx.beginPath();
+        ctx.lineWidth = thickness;
+        ctx.strokeStyle = config.separatorColor;
+        ctx.arc(
+          cx,
+          cy,
+          radius - thickness / 2,
+          Math.PI / 4 - 0.04,
+          Math.PI / 4 + 1 + 0.04
+        );
+        ctx.stroke();
+
+        // Key highlight
+        ctx.beginPath();
+        ctx.lineWidth = thickness;
+        ctx.strokeStyle =
+          config.state === "typing" ? config.keyHlColor : config.bsHlColor;
+        ctx.arc(cx, cy, radius - thickness / 2, Math.PI / 4, Math.PI / 4 + 1);
+        ctx.stroke();
+      }
+
+      // Ring border
+      ctx.strokeStyle =
+        {
+          cleared: config.lineClearColor,
+          verifying: config.lineVerColor,
+          wrong: config.lineWrongColor,
+        }[config.state] || config.lineColor;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2, 0);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius - thickness, 0, Math.PI * 2, 0);
+      ctx.stroke();
+    }
+
+    /**
+     * Return a dictionary of configuration option (in camelCase) and the current value.
+     */
+    function getConfig() {
+      const cfg = CONFIG.reduce((acc, option) => {
+        const camelCaseKey = option.name
+          .replace("--", "")
+          .replace(/\-[a-z]/g, (x) => x[1].toUpperCase());
+
+        acc[camelCaseKey] = option.node.value;
+        return acc;
+      }, {});
+
+      cfg.state = document.querySelector('[name="state"]').value;
+      return cfg;
+    }
+
+    /**
+     * Render and update text configuration output.
+     */
+    function update() {
+      const config = getConfig();
+      render(config);
+
+      const lines = CONFIG.map((option) => {
+        const key = option.name.replace("--", "");
+        const value = option.node.value;
+
+        if (value !== option.default) {
+          return `${key}=${value}`;
+        }
+      });
+
+      document.querySelector("textarea").value = lines
+        .filter((s) => s)
+        .join("\n");
+    }
+
+    function loadConfig() {
+      const cfg = document
+        .querySelector("textarea")
+        .value.split("\n")
+        .reduce((acc, line) => {
+          const [name, value] = line.split("=");
+          acc["--" + name] = value;
+          return acc;
+        }, {});
+
+      CONFIG.forEach((option) => {
+        const value = cfg[option.name];
+        if (value) {
+          option.node.value = value;
+        }
+      });
+
+      update();
+    }
+
+    /**
+     * Return a dictionary of configuration option (in camelCase) and the current value.
+     */
+    function setUp() {
+      const form = document.querySelector("form");
+      CONFIG.forEach((option) => {
+        const child = document.createElement("label");
+        child.innerHTML = `
+              <strong>${option.name}</strong>
+              <input data-type="${option.type}" type="${
+          option.type === "color" ? "text" : option.type
+        }" name="${option.name}" value="${option.default}" />
+              <small>${option.help}</small>`;
+        option.node = form.appendChild(child).querySelector("input");
+      });
+
+      [...document.querySelectorAll('[data-type="color"]')].forEach((node) => {
+        new CP(node).on("change", (r, g, b, a) => {
+          node.value = CP.HEX([r, g, b, a]);
+          update();
+        });
+      });
+      [...document.querySelectorAll('[data-type="number"]')].forEach((node) =>
+        node.addEventListener("input", update)
+      );
+      document
+        .querySelector('[name="state"')
+        .addEventListener("change", update);
+      document.querySelector("button").addEventListener("click", loadConfig);
+
+      update();
+    }
+
+    setUp();
+  </script>
+</body>
