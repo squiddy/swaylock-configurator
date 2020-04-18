@@ -4,7 +4,7 @@ Visualize changes to [swaylock's](https://github.com/swaywm/swaylock) configurat
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**WORK IN PROGRESS!**
+**Does not support all configuration options (mostly text related settings are missing).**
 
 [Live Demo](https://squiddy.github.io/swaylock-configurator/)
 
